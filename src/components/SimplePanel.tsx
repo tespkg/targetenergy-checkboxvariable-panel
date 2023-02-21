@@ -1,34 +1,66 @@
-import React from 'react';
-import { PanelProps } from '@grafana/data';
-import { SimpleOptions } from 'types';
-import { css, cx } from '@emotion/css';
-import { useStyles2, useTheme2 } from '@grafana/ui';
+import React from 'react'
+import { PanelProps } from '@grafana/data'
+import { SimpleOptions } from 'types'
+import { css, cx } from '@emotion/css'
+import { useStyles2, Checkbox, Alert } from '@grafana/ui'
+import { getTemplateSrv, locationService } from '@grafana/runtime'
 
 interface Props extends PanelProps<SimpleOptions> {}
 
 const getStyles = () => {
   return {
     wrapper: css`
-      font-family: Open Sans;
       position: relative;
     `,
-    svg: css`
-      position: absolute;
-      top: 0;
-      left: 0;
+    list: css`
+      list-style: none;
     `,
-    textBox: css`
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      padding: 10px;
+    item: css`
+      line-height: 1.8;
     `,
-  };
-};
+  }
+}
 
 export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) => {
-  const theme = useTheme2();
-  const styles = useStyles2(getStyles);
+  const styles = useStyles2(getStyles)
+  const { field, variableName, multiselect } = options
+  const rows = data.series
+    .map((d) => d.fields.find((f) => f.name === field))
+    .map((f) => f?.values)
+    .at(-1)
+    ?.toArray()
+
+  const hasVar = getTemplateSrv()
+    .getVariables()
+    .find((v) => v.name === variableName)
+  let variableConfigError: React.ReactNode
+  if (!hasVar || hasVar.type !== 'textbox') {
+    variableConfigError = (
+      <Alert title="Variable not configured properly" severity="error">
+        Please create a &quot;Text box&quot; variable with name `{variableName}`.
+        <br /> This plugin sets the variable when a checkbox is selected.
+        <br /> If you have the variable already, make sure it has the same name with the &quot;Variable name&quot; in
+        the panel config.
+      </Alert>
+    )
+  }
+
+  const selected = locationService.getSearch().get(`var-${variableName}`)?.split(',')
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = String(e.target.dataset.value)
+    if (multiselect) {
+      if (e.target.checked) {
+        selected?.push(value)
+      } else {
+        selected?.splice(selected.indexOf(value), 1)
+      }
+    } else {
+      selected?.splice(0, selected.length)
+      selected?.push(value)
+    }
+    locationService.partial({ [`var-${variableName}`]: selected?.join(',') })
+  }
+
   return (
     <div
       className={cx(
@@ -39,23 +71,14 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) =
         `
       )}
     >
-      <svg
-        className={styles.svg}
-        width={width}
-        height={height}
-        xmlns="http://www.w3.org/2000/svg"
-        xmlnsXlink="http://www.w3.org/1999/xlink"
-        viewBox={`-${width / 2} -${height / 2} ${width} ${height}`}
-      >
-        <g>
-          <circle style={{ fill: theme.colors.primary.main }} r={100} />
-        </g>
-      </svg>
-
-      <div className={styles.textBox}>
-        {options.showSeriesCount && <div>Number of series: {data.series.length}</div>}
-        <div>Text option value: {options.text}</div>
-      </div>
+      {variableConfigError}
+      <ul className={styles.list}>
+        {rows?.map((row) => (
+          <li key={row} className={styles.item}>
+            <Checkbox checked={selected?.includes(String(row))} data-value={row} onChange={handleChange} label={row} />
+          </li>
+        ))}
+      </ul>
     </div>
-  );
-};
+  )
+}
