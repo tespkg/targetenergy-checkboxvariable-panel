@@ -4,6 +4,7 @@ import { SimpleOptions } from 'types'
 import { css, cx } from '@emotion/css'
 import { useStyles2, Checkbox, Alert } from '@grafana/ui'
 import { getTemplateSrv, locationService } from '@grafana/runtime'
+import { uniq } from 'lodash'
 
 interface Props extends PanelProps<SimpleOptions> {}
 
@@ -24,11 +25,12 @@ const getStyles = () => {
 export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) => {
   const styles = useStyles2(getStyles)
   const { field, variableName, multiselect } = options
-  const rows = data.series
+  let rows = data.series
     .map((d) => d.fields.find((f) => f.name === field))
     .map((f) => f?.values)
     .at(-1)
     ?.toArray()
+  rows = uniq(rows)
 
   const hasVar = getTemplateSrv()
     .getVariables()
@@ -45,7 +47,12 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) =
     )
   }
 
-  const selected = locationService.getSearch().get(`var-${variableName}`)?.split(',')
+  const selected =
+    locationService
+      .getSearch()
+      .get(`var-${variableName}`)
+      ?.split(',')
+      .filter((s) => !!s) ?? []
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = String(e.target.dataset.value)
     if (multiselect) {
@@ -60,6 +67,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) =
     }
     locationService.partial({ [`var-${variableName}`]: selected?.join(',') })
   }
+  console.log(selected)
 
   return (
     <div
