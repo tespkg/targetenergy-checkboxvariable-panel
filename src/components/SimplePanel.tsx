@@ -12,6 +12,7 @@ const getStyles = () => {
   return {
     wrapper: css`
       position: relative;
+      overflow: auto;
     `,
     list: css`
       list-style: none;
@@ -57,7 +58,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) =
     const value = String(e.target.dataset.value)
     if (multiselect) {
       if (e.target.checked) {
-        selected?.push(value)
+        !selected?.includes(value) && selected?.push(value)
       } else {
         selected?.splice(selected.indexOf(value), 1)
       }
@@ -67,7 +68,6 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) =
     }
     locationService.partial({ [`var-${variableName}`]: selected?.join(',') })
   }
-  console.log(selected)
 
   return (
     <div
@@ -83,7 +83,12 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) =
       <ul className={styles.list}>
         {rows?.map((row) => (
           <li key={row} className={styles.item}>
-            <Checkbox checked={selected?.includes(String(row))} data-value={row} onChange={handleChange} label={row} />
+            <Checkbox
+              checked={selected?.includes(String(row))}
+              data-value={String(row)}
+              onChange={handleChange}
+              label={row}
+            />
           </li>
         ))}
       </ul>
