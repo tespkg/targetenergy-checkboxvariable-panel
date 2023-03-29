@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { PanelProps } from '@grafana/data'
 import { SimpleOptions } from 'types'
 import { css, cx } from '@emotion/css'
@@ -32,6 +32,16 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height }) =
     .at(-1)
     ?.toArray()
   rows = uniq(rows)
+
+  const [_, setLocation] = useState(locationService.getLocation())
+
+  useEffect(() => {
+    const history = locationService.getHistory()
+    const unlisten = history.listen((location: any) => {
+      setLocation(location)
+    })
+    return unlisten
+  }, [])
 
   const hasVar = getTemplateSrv()
     .getVariables()
