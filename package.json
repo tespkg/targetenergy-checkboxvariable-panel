@@ -1,6 +1,6 @@
 {
   "name": "checkbox-variable",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Turn column into checkbox to set variables",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
